@@ -288,12 +288,11 @@ export default function Dashboard() {
   const isMobile = screenWidth < 768;
   const isTablet = screenWidth >= 768 && screenWidth < 1100;
 
-  const page: React.CSSProperties = {
-    padding: isMobile ? 12 : 28,
-    background: "#f8fafc",
-    minHeight: "100vh",
-    boxSizing: "border-box",
-  };
+const page: React.CSSProperties = {
+  padding: "20px clamp(14px,4vw,28px)",
+  background: "#f8fafc",
+  minHeight: "100vh",
+};
 
   const hero: React.CSSProperties = {
     display: "flex",
@@ -487,18 +486,18 @@ export default function Dashboard() {
     lineHeight: 1.45,
   };
 
-  const contentGrid: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: isTablet || isMobile ? "1fr" : "1fr 1fr",
-    gap: 18,
-    marginBottom: 22,
-  };
+ const contentGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: 20,
+  marginBottom: 24,
+};
 
   const bottomGrid: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: isTablet || isMobile ? "1fr" : "1fr 1fr",
-    gap: 18,
-  };
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: 20,
+};
 
   const panel: React.CSSProperties = {
     background: "#fff",
@@ -654,10 +653,10 @@ export default function Dashboard() {
   };
 
   const flowGrid: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-    gap: 10,
-  };
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: 10,
+};
 
   const flowBtn: React.CSSProperties = {
     background: "#f8fafc",
