@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./globals.css";
+import AuthGuard from "../components/AuthGuard";
 
 export default function RootLayout({
   children,
@@ -56,49 +57,51 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body style={{ margin: 0 }}>
-        <div style={layout}>
-          <aside style={sidebar}>
-            <div style={logo}>
-              <img src="/bigalogo.png" style={{ width: 130 }} />
-            </div>
+        <AuthGuard>
+          <div style={layout}>
+            <aside style={sidebar}>
+              <div style={logo}>
+                <img src="/bigalogo.png" style={{ width: 130 }} />
+              </div>
 
-            <nav style={menu}>
-              <Link href="/" style={menuButton}>
-                🏠 Dashboard
-              </Link>
+              <nav style={menu}>
+                <Link href="/" style={menuButton}>
+                  🏠 Dashboard
+                </Link>
 
-              <Link href="/inventory" style={menuButton}>
-                📦 Magazzino
-              </Link>
+                <Link href="/inventory" style={menuButton}>
+                  📦 Magazzino
+                </Link>
 
-              <Link href="/movements" style={menuButton}>
-                🔄 Movimenti
-              </Link>
+                <Link href="/movements" style={menuButton}>
+                  🔄 Movimenti
+                </Link>
 
-              <Link href="/customers" style={menuButton}>
-                👤 Clienti
-              </Link>
+                <Link href="/customers" style={menuButton}>
+                  👤 Clienti
+                </Link>
 
-              <Link href="/workorders" style={menuButton}>
-                🔧 Schede officina
-              </Link>
+                <Link href="/workorders" style={menuButton}>
+                  🔧 Schede officina
+                </Link>
 
-              <Link href="/inventory-bikes" style={menuButton}>
-                🚲 Bici magazzino
-              </Link>
+                <Link href="/inventory-bikes" style={menuButton}>
+                  🚲 Bici magazzino
+                </Link>
 
-              <Link href="/bike-disassembly" style={menuButton}>
-                🛠 Smonta ricambi bici
-              </Link>
+                <Link href="/bike-disassembly" style={menuButton}>
+                  🛠 Smonta ricambi bici
+                </Link>
 
-              <Link href="/install-component" style={menuButton}>
-                🔩 Monta ricambi su bici
-              </Link>
-            </nav>
-          </aside>
+                <Link href="/install-component" style={menuButton}>
+                  🔩 Monta ricambi su bici
+                </Link>
+              </nav>
+            </aside>
 
-          <main style={page}>{children}</main>
-        </div>
+            <main style={page}>{children}</main>
+          </div>
+        </AuthGuard>
       </body>
     </html>
   );
