@@ -1,109 +1,105 @@
-import "./globals.css"
+import Link from "next/link";
+import "./globals.css";
 
 export default function RootLayout({
-children,
-}:{
-children: React.ReactNode
+  children,
+}: {
+  children: React.ReactNode;
 }) {
+  const layout: React.CSSProperties = {
+    display: "flex",
+    minHeight: "100vh",
+    background: "#f6f8fb",
+    color: "#1f2937",
+    fontFamily: "Inter, system-ui",
+  };
 
-const isReportPage =
-typeof window !== "undefined" &&
-window.location.pathname.includes("/report")
+  const sidebar: React.CSSProperties = {
+    width: 240,
+    background: "#ffffff",
+    padding: 20,
+    borderRight: "1px solid #e5e7eb",
+    display: "flex",
+    flexDirection: "column",
+  };
 
-return (
+  const logo: React.CSSProperties = {
+    marginBottom: 30,
+    textAlign: "center",
+  };
 
-<html lang="it">
+  const menu: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  };
 
-<body style={{
-margin:0,
-fontFamily:"Arial",
-background:"#f0f0f0",
-color:"#333"
-}}>
+  const menuButton: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px 14px",
+    borderRadius: 8,
+    textDecoration: "none",
+    color: "#374151",
+    fontWeight: 500,
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    transition: "all 0.15s",
+  };
 
-{/* SE È REPORT NON MOSTRA SIDEBAR */}
+  const page: React.CSSProperties = {
+    flex: 1,
+    padding: 40,
+  };
 
-{isReportPage ? (
+  return (
+    <html lang="it">
+      <body style={{ margin: 0 }}>
+        <div style={layout}>
+          <aside style={sidebar}>
+            <div style={logo}>
+              <img src="/bigalogo.png" style={{ width: 130 }} />
+            </div>
 
-<div style={{minHeight:"100vh",background:"white"}}>
-{children}
-</div>
+            <nav style={menu}>
+              <Link href="/" style={menuButton}>
+                🏠 Dashboard
+              </Link>
 
-) : (
+              <Link href="/inventory" style={menuButton}>
+                📦 Magazzino
+              </Link>
 
-<div style={{
-display:"flex",
-minHeight:"100vh"
-}}>
+              <Link href="/movements" style={menuButton}>
+                🔄 Movimenti
+              </Link>
 
-{/* SIDEBAR */}
+              <Link href="/customers" style={menuButton}>
+                👤 Clienti
+              </Link>
 
-<div style={{
-width:240,
-background:"#55595c",
-color:"white",
-padding:20
-}}>
+              <Link href="/workorders" style={menuButton}>
+                🔧 Schede officina
+              </Link>
 
-<img
-src="/logotondo.png"
-style={{
-width:"100%",
-marginBottom:30
-}}
-/>
+              <Link href="/inventory-bikes" style={menuButton}>
+                🚲 Bici magazzino
+              </Link>
 
-<div style={{lineHeight:"34px"}}>
+              <Link href="/bike-disassembly" style={menuButton}>
+                🛠 Smonta ricambi bici
+              </Link>
 
-<a href="/" style={{color:"white",textDecoration:"none"}}>
-Dashboard
-</a><br/>
+              <Link href="/install-component" style={menuButton}>
+                🔩 Monta ricambi su bici
+              </Link>
+            </nav>
+          </aside>
 
-<a href="/products" style={{color:"white",textDecoration:"none"}}>
-Magazzino
-</a><br/>
-
-<a href="/inventory" style={{color:"white",textDecoration:"none"}}>
-Movimenti
-</a><br/>
-
-<a href="/customers" style={{color:"white",textDecoration:"none"}}>
-Clienti
-</a><br/>
-
-<a href="/bikes" style={{color:"white",textDecoration:"none"}}>
-Bici clienti
-</a><br/>
-
-<a href="/workorders" style={{color:"white",textDecoration:"none"}}>
-Schede officina
-</a>
-
-</div>
-
-</div>
-
-{/* CONTENUTO */}
-
-<div style={{
-flex:1,
-padding:40,
-background:"#f0f0f0",
-color:"#333"
-}}>
-
-{children}
-
-</div>
-
-</div>
-
-)}
-
-</body>
-
-</html>
-
-)
-
+          <main style={page}>{children}</main>
+        </div>
+      </body>
+    </html>
+  );
 }
