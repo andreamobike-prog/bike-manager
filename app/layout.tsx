@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
 
 export default function RootLayout({
   children,
@@ -13,46 +22,48 @@ export default function RootLayout({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const check = () => {
-      setMobile(window.innerWidth < 900);
-    };
-
+    const check = () => setMobile(window.innerWidth < 900);
     check();
     window.addEventListener("resize", check);
-
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  useEffect(() => {
+    if (!mobile) {
+      setOpen(false);
+    }
+  }, [mobile]);
+
   return (
     <html lang="it">
-      <body style={{ margin: 0 }}>
-
+      <body style={{ margin: 0, overflowX: "hidden" }}>
         <div style={layout}>
-
-          {/* MOBILE HEADER */}
-
           {mobile && (
             <div style={mobileHeader}>
-              <button
-                style={menuButton}
-                onClick={() => setOpen(!open)}
-              >
+              <button style={menuButton} onClick={() => setOpen(!open)}>
                 ☰
               </button>
 
-              <img
-                src="/bigalogo.png"
-                style={{ height: 40 }}
-              />
+              <img src="/bigalogo.png" alt="Biga" style={{ height: 40 }} />
             </div>
           )}
 
-          {/* SIDEBAR */}
+          {mobile && open && (
+            <div
+              style={overlay}
+              onClick={() => setOpen(false)}
+            />
+          )}
 
           {(!mobile || open) && (
-            <aside style={sidebar}>
+            <aside
+              style={{
+                ...sidebar,
+                ...(mobile ? mobileSidebar : null),
+              }}
+            >
               <div style={logo}>
-                <img src="/bigalogo.png" style={{ width: 120 }} />
+                <img src="/bigalogo.png" alt="Biga" style={{ width: 120 }} />
               </div>
 
               <nav style={menu}>
@@ -68,19 +79,16 @@ export default function RootLayout({
             </aside>
           )}
 
-          {/* CONTENUTO */}
-
           <main
             style={{
               ...page,
               marginLeft: mobile ? 0 : 240,
+              marginTop: mobile ? 60 : 0,
             }}
           >
             {children}
           </main>
-
         </div>
-
       </body>
     </html>
   );
@@ -104,6 +112,8 @@ const layout: React.CSSProperties = {
   display: "flex",
   minHeight: "100vh",
   background: "#f6f8fb",
+  width: "100%",
+  overflowX: "hidden",
 };
 
 const sidebar: React.CSSProperties = {
@@ -117,6 +127,19 @@ const sidebar: React.CSSProperties = {
   left: 0,
   overflowY: "auto",
   zIndex: 20,
+  boxSizing: "border-box",
+};
+
+const mobileSidebar: React.CSSProperties = {
+  width: 240,
+  transform: "translateX(0)",
+};
+
+const overlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.25)",
+  zIndex: 19,
 };
 
 const logo: React.CSSProperties = {
@@ -138,11 +161,16 @@ const menuItem: React.CSSProperties = {
   background: "#f9fafb",
   border: "1px solid #e5e7eb",
   fontWeight: 500,
+  boxSizing: "border-box",
 };
 
 const page: React.CSSProperties = {
   flex: 1,
+  width: "100%",
+  maxWidth: "100%",
   padding: "20px clamp(14px,4vw,40px)",
+  boxSizing: "border-box",
+  overflowX: "hidden",
 };
 
 const mobileHeader: React.CSSProperties = {
@@ -158,6 +186,7 @@ const mobileHeader: React.CSSProperties = {
   gap: 15,
   padding: "0 15px",
   zIndex: 30,
+  boxSizing: "border-box",
 };
 
 const menuButton: React.CSSProperties = {
