@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { usePathname, useRouter } from "next/navigation";
 
 export default function AuthGuard({
@@ -10,26 +11,43 @@ export default function AuthGuard({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checked, setChecked] = useState(false);
+
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (pathname === "/login") {
-      setChecked(true);
-      return;
-    }
+    checkAuth();
 
-    const auth = localStorage.getItem("app_auth");
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      checkAuth();
+    });
 
-    if (auth !== "ok") {
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function checkAuth() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const isLoginPage = pathname === "/login";
+
+    if (!session && !isLoginPage) {
       router.replace("/login");
       return;
     }
 
-    setChecked(true);
-  }, [pathname, router]);
+    if (session && isLoginPage) {
+      router.replace("/");
+      return;
+    }
 
-  if (!checked) {
-    return <div style={{ padding: 40 }}>Caricamento...</div>;
+    setChecking(false);
+  }
+
+  if (checking) {
+    return <div style={{ padding: 40 }}>Verifica accesso...</div>;
   }
 
   return <>{children}</>;

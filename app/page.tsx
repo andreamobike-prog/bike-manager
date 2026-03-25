@@ -38,11 +38,10 @@ type RecentMovement = {
   } | null;
 };
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-
   const [stats, setStats] = useState<DashboardStats>({
     products: 0,
     lowStock: 0,
@@ -67,16 +66,16 @@ export default function Dashboard() {
     const today = new Date().toISOString().slice(0, 10);
 
     const [
-      { data: productsData, error: productsError },
-      { data: inventoryBikesData, error: inventoryBikesError },
-      { data: ordersData, error: ordersError },
-      { data: movementsData, error: movementsError },
-      { data: recentOrdersData, error: recentOrdersError },
-      { data: recentMovementsData, error: recentMovementsError },
-      { data: customersData, error: customersError },
+      { data: productsData },
+      { data: inventoryBikesData },
+      { data: ordersData },
+      { data: movementsData },
+      { data: recentOrdersData },
+      { data: recentMovementsData },
+      { data: customersData },
     ] = await Promise.all([
       supabase.from("products").select("id,warehouse_qty"),
-      supabase.from("inventory_bikes").select("id,current_value"),
+      supabase.from("inventory_bikes").select("id"),
       supabase.from("work_orders").select("id,status"),
       supabase.from("inventory_movements").select("id,created_at"),
       supabase
@@ -91,7 +90,7 @@ export default function Dashboard() {
         `
         )
         .order("created_at", { ascending: false })
-        .limit(6),
+        .limit(5),
       supabase
         .from("inventory_movements")
         .select(
@@ -104,94 +103,66 @@ export default function Dashboard() {
         `
         )
         .order("created_at", { ascending: false })
-        .limit(6),
+        .limit(5),
       supabase.from("customers").select("id"),
     ]);
 
-    if (productsError) console.error(productsError);
-    if (inventoryBikesError) console.error(inventoryBikesError);
-    if (ordersError) console.error(ordersError);
-    if (movementsError) console.error(movementsError);
-    if (recentOrdersError) console.error(recentOrdersError);
-    if (recentMovementsError) console.error(recentMovementsError);
-    if (customersError) console.error(customersError);
+    const products = (productsData as any[]) || [];
+    const inventoryBikes = (inventoryBikesData as any[]) || [];
+    const orders = (ordersData as any[]) || [];
+    const movements = (movementsData as any[]) || [];
+    const customers = (customersData as any[]) || [];
 
-    const products = productsData || [];
-    const inventoryBikes = inventoryBikesData || [];
-    const orders = ordersData || [];
-    const movements = movementsData || [];
-    const customers = customersData || [];
-
-    const totalProducts = products.length;
-    const lowStock = products.filter((p: any) => Number(p.warehouse_qty || 0) > 0 && Number(p.warehouse_qty || 0) <= 2).length;
-    const outOfStock = products.filter((p: any) => Number(p.warehouse_qty || 0) <= 0).length;
-    const totalInventoryBikes = inventoryBikes.length;
-
-    const openOrders = orders.filter((o: any) => o.status === "open").length;
-    const workingOrders = orders.filter((o: any) => o.status === "working").length;
-
-    const todayMovements = movements.filter((m: any) => {
-      if (!m.created_at) return false;
-      return new Date(m.created_at).toISOString().slice(0, 10) === today;
-    }).length;
+    setStats({
+      products: products.length,
+      lowStock: products.filter(
+        (p) => Number(p.warehouse_qty || 0) > 0 && Number(p.warehouse_qty || 0) <= 2
+      ).length,
+      outOfStock: products.filter((p) => Number(p.warehouse_qty || 0) <= 0).length,
+      openOrders: orders.filter((o) => o.status === "open").length,
+      workingOrders: orders.filter((o) => o.status === "working").length,
+      todayMovements: movements.filter((m) => {
+        if (!m.created_at) return false;
+        return new Date(m.created_at).toISOString().slice(0, 10) === today;
+      }).length,
+      inventoryBikes: inventoryBikes.length,
+      customers: customers.length,
+    });
 
     setRecentOrders((recentOrdersData as RecentOrder[]) || []);
     setRecentMovements((recentMovementsData as RecentMovement[]) || []);
-
-    setStats({
-      products: totalProducts,
-      lowStock,
-      openOrders,
-      workingOrders,
-      todayMovements,
-      inventoryBikes: totalInventoryBikes,
-      customers: customers.length,
-      outOfStock,
-    });
-
     setLoading(false);
   }
 
-  const urgentCards = useMemo(() => {
-    return [
+  const alerts = useMemo(
+    () => [
       {
-        title: "Schede in lavorazione",
+        label: "Schede in lavorazione",
         value: stats.workingOrders,
-        description: "Lavori attivi da seguire subito",
-        color: "#f59e0b",
-        bg: "#fff7ed",
-        border: "#fed7aa",
-        link: "/workorders",
+        tone: "orange",
+        path: "/workorders",
       },
       {
-        title: "Prodotti sotto scorta",
+        label: "Prodotti sotto scorta",
         value: stats.lowStock,
-        description: "Articoli con quantità bassa",
-        color: "#ea580c",
-        bg: "#fff7ed",
-        border: "#fdba74",
-        link: "/inventory",
+        tone: "orange",
+        path: "/inventory",
       },
       {
-        title: "Prodotti esauriti",
+        label: "Prodotti esauriti",
         value: stats.outOfStock,
-        description: "Articoli da ricaricare",
-        color: "#dc2626",
-        bg: "#fff1f2",
-        border: "#fecdd3",
-        link: "/inventory",
+        tone: "red",
+        path: "/inventory",
       },
       {
-        title: "Movimenti di oggi",
+        label: "Movimenti oggi",
         value: stats.todayMovements,
-        description: "Attività registrate oggi",
-        color: "#2563eb",
-        bg: "#eff6ff",
-        border: "#bfdbfe",
-        link: "/movements",
+        tone: "blue",
+        path: "/movements",
       },
-    ];
-  }, [stats]);
+    ],
+    [stats]
+  );
 
   function go(path: string) {
     router.push(path);
@@ -204,67 +175,55 @@ export default function Dashboard() {
     return status || "-";
   }
 
-  function statusStyle(status: string | null): React.CSSProperties {
+  function statusBadge(status: string | null): React.CSSProperties {
     if (status === "open") {
-      return {
-        background: "#e0f2fe",
-        color: "#075985",
-      };
+      return { background: "#e0f2fe", color: "#075985" };
     }
-
     if (status === "working") {
-      return {
-        background: "#fff7ed",
-        color: "#c2410c",
-      };
+      return { background: "#fff7ed", color: "#c2410c" };
     }
-
     if (status === "closed") {
-      return {
-        background: "#e5e7eb",
-        color: "#374151",
-      };
+      return { background: "#e5e7eb", color: "#374151" };
     }
-
-    return {
-      background: "#f3f4f6",
-      color: "#374151",
-    };
+    return { background: "#f3f4f6", color: "#374151" };
   }
 
-  function movementStyle(type: string | null): React.CSSProperties {
+  function movementBadge(type: string | null): React.CSSProperties {
     if (type === "carico") {
-      return {
-        background: "#dbeafe",
-        color: "#1d4ed8",
-      };
+      return { background: "#dbeafe", color: "#1d4ed8" };
     }
-
     if (type === "officina") {
-      return {
-        background: "#ffedd5",
-        color: "#c2410c",
-      };
+      return { background: "#ffedd5", color: "#c2410c" };
     }
-
     if (type === "scarico") {
-      return {
-        background: "#fee2e2",
-        color: "#b91c1c",
-      };
+      return { background: "#fee2e2", color: "#b91c1c" };
     }
-
     if (type === "recupero_bici") {
-      return {
-        background: "#dcfce7",
-        color: "#166534",
-      };
+      return { background: "#dcfce7", color: "#166534" };
     }
+    return { background: "#e5e7eb", color: "#374151" };
+  }
 
+  function alertTone(tone: string): React.CSSProperties {
+    if (tone === "red") {
+      return {
+        background: "#fff1f2",
+        border: "1px solid #fecdd3",
+        valueColor: "#dc2626",
+      } as any;
+    }
+    if (tone === "orange") {
+      return {
+        background: "#fff7ed",
+        border: "1px solid #fed7aa",
+        valueColor: "#ea580c",
+      } as any;
+    }
     return {
-      background: "#e5e7eb",
-      color: "#374151",
-    };
+      background: "#eff6ff",
+      border: "1px solid #bfdbfe",
+      valueColor: "#2563eb",
+    } as any;
   }
 
   if (loading) {
@@ -278,7 +237,7 @@ export default function Dashboard() {
           <div style={eyebrow}>Pannello operativo</div>
           <h1 style={title}>Dashboard</h1>
           <p style={subtitle}>
-            Panoramica immediata di officina, magazzino, clienti e bici aziendali.
+            Le informazioni essenziali per gestire officina, magazzino e clienti.
           </p>
         </div>
 
@@ -292,108 +251,95 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={statsGrid}>
-        <MainStat
-          title="Prodotti magazzino"
-          value={stats.products}
-          subtitle="Articoli anagrafati"
-          onClick={() => go("/inventory")}
-        />
-        <MainStat
-          title="Clienti"
-          value={stats.customers}
-          subtitle="Anagrafiche registrate"
-          onClick={() => go("/customers")}
-        />
-        <MainStat
-          title="Schede aperte"
-          value={stats.openOrders}
-          subtitle="Da prendere in carico"
-          onClick={() => go("/workorders")}
-        />
-        <MainStat
-          title="Bici magazzino"
-          value={stats.inventoryBikes}
-          subtitle="Asset aziendali disponibili"
-          onClick={() => go("/inventory-bikes")}
-        />
+      <div style={kpiGrid}>
+        <button style={kpiCard} onClick={() => go("/workorders")}>
+          <div style={kpiLabel}>Schede aperte</div>
+          <div style={kpiValue}>{stats.openOrders}</div>
+          <div style={kpiSub}>Da prendere in carico</div>
+        </button>
+
+        <button style={kpiCard} onClick={() => go("/inventory")}>
+          <div style={kpiLabel}>Prodotti</div>
+          <div style={kpiValue}>{stats.products}</div>
+          <div style={kpiSub}>Articoli presenti a magazzino</div>
+        </button>
+
+        <button style={kpiCard} onClick={() => go("/customers")}>
+          <div style={kpiLabel}>Clienti</div>
+          <div style={kpiValue}>{stats.customers}</div>
+          <div style={kpiSub}>Anagrafiche registrate</div>
+        </button>
+
+        <button style={kpiCard} onClick={() => go("/inventory-bikes")}>
+          <div style={kpiLabel}>Bici magazzino</div>
+          <div style={kpiValue}>{stats.inventoryBikes}</div>
+          <div style={kpiSub}>Bici aziendali disponibili</div>
+        </button>
       </div>
 
-      <div style={urgentGrid}>
-        {urgentCards.map((card) => (
-          <button
-            key={card.title}
-            onClick={() => go(card.link)}
-            style={{
-              ...urgentCard,
-              background: card.bg,
-              border: `1px solid ${card.border}`,
-            }}
-          >
-            <div style={urgentTop}>
-              <div style={urgentTitle}>{card.title}</div>
-              <div style={{ ...urgentValue, color: card.color }}>{card.value}</div>
-            </div>
-            <div style={urgentDescription}>{card.description}</div>
-          </button>
-        ))}
+      <div style={alertsGrid}>
+        {alerts.map((item) => {
+          const tone = alertTone(item.tone) as any;
+
+          return (
+            <button
+              key={item.label}
+              onClick={() => go(item.path)}
+              style={{
+                ...alertCard,
+                background: tone.background,
+                border: tone.border,
+              }}
+            >
+              <div style={alertLabel}>{item.label}</div>
+              <div style={{ ...alertValue, color: tone.valueColor }}>{item.value}</div>
+            </button>
+          );
+        })}
       </div>
 
-      <div style={quickSection}>
+      <div style={quickWrap}>
         <div style={sectionTitle}>Azioni rapide</div>
 
         <div style={quickGrid}>
-          <QuickAction
-            title="Magazzino"
-            description="Visualizza e modifica articoli"
-            emoji="📦"
-            onClick={() => go("/inventory")}
-          />
-          <QuickAction
-            title="Movimenti"
-            description="Controlla carichi, scarichi e officina"
-            emoji="🔄"
-            onClick={() => go("/movements")}
-          />
-          <QuickAction
-            title="Clienti"
-            description="Apri anagrafiche e bici cliente"
-            emoji="👤"
-            onClick={() => go("/customers")}
-          />
-          <QuickAction
-            title="Schede officina"
-            description="Accedi ai lavori aperti e chiusi"
-            emoji="🔧"
-            onClick={() => go("/workorders")}
-          />
-          <QuickAction
-            title="Bici magazzino"
-            description="Gestisci asset e valore attuale"
-            emoji="🚲"
-            onClick={() => go("/inventory-bikes")}
-          />
-          <QuickAction
-            title="Smonta ricambi"
-            description="Recupera componenti da bici"
-            emoji="🛠"
-            onClick={() => go("/bike-disassembly")}
-          />
-          <QuickAction
-            title="Monta ricambi"
-            description="Installa componenti sulle bici"
-            emoji="🔩"
-            onClick={() => go("/install-component")}
-          />
+          <button style={quickCard} onClick={() => go("/workorders")}>
+            <div style={quickIcon}>🔧</div>
+            <div style={quickTitle}>Schede officina</div>
+          </button>
+
+          <button style={quickCard} onClick={() => go("/inventory")}>
+            <div style={quickIcon}>📦</div>
+            <div style={quickTitle}>Magazzino</div>
+          </button>
+
+          <button style={quickCard} onClick={() => go("/movements")}>
+            <div style={quickIcon}>🔄</div>
+            <div style={quickTitle}>Movimenti</div>
+          </button>
+
+          <button style={quickCard} onClick={() => go("/customers")}>
+            <div style={quickIcon}>👤</div>
+            <div style={quickTitle}>Clienti</div>
+          </button>
+
+          <button style={quickCard} onClick={() => go("/inventory-bikes")}>
+            <div style={quickIcon}>🚲</div>
+            <div style={quickTitle}>Bici magazzino</div>
+          </button>
+
+          <button style={quickCard} onClick={() => go("/bike-disassembly")}>
+            <div style={quickIcon}>🛠</div>
+            <div style={quickTitle}>Smonta ricambi</div>
+          </button>
         </div>
       </div>
 
-      <div style={contentGrid}>
+      <div style={contentGrid} className="contentGridResponsive">
         <div style={panel}>
           <div style={panelHeader}>
             <div>
               <h2 style={panelTitle}>Ultime schede lavoro</h2>
-              <p style={panelSubtitle}>Le lavorazioni più recenti da controllare.</p>
+              <p style={panelSubtitle}>Le lavorazioni più recenti.</p>
             </div>
 
             <button style={linkBtn} onClick={() => go("/workorders")}>
@@ -408,7 +354,9 @@ export default function Dashboard() {
               {recentOrders.map((o) => (
                 <div key={o.id} style={listRow}>
                   <div style={listLeft}>
-                    <div style={rowTitle}>{o.customers?.name || "Cliente non definito"}</div>
+                    <div style={rowTitle}>
+                      {o.customers?.name || "Cliente non definito"}
+                    </div>
                     <div style={rowSub}>
                       {o.bikes?.brand || "-"} {o.bikes?.model || ""}
                     </div>
@@ -420,17 +368,12 @@ export default function Dashboard() {
                   </div>
 
                   <div style={listRight}>
-                    <span
-                      style={{
-                        ...statusBadge,
-                        ...statusStyle(o.status),
-                      }}
-                    >
+                    <span style={{ ...badge, ...statusBadge(o.status) }}>
                       {formatStatus(o.status)}
                     </span>
 
                     <button
-                      style={smallActionBtn}
+                      style={smallBtn}
                       onClick={() => {
                         if (o.status === "closed") {
                           router.push(`/workorders/${o.id}/report`);
@@ -452,7 +395,7 @@ export default function Dashboard() {
           <div style={panelHeader}>
             <div>
               <h2 style={panelTitle}>Ultimi movimenti</h2>
-              <p style={panelSubtitle}>Le ultime attività di magazzino registrate.</p>
+              <p style={panelSubtitle}>Le ultime attività registrate.</p>
             </div>
 
             <button style={linkBtn} onClick={() => go("/movements")}>
@@ -467,10 +410,10 @@ export default function Dashboard() {
               {recentMovements.map((m) => (
                 <div key={m.id} style={listRow}>
                   <div style={listLeft}>
-                    <div style={rowTitle}>{m.products?.title || "Prodotto non trovato"}</div>
-                    <div style={rowSub}>
-                      Quantità: {m.quantity ?? 0}
+                    <div style={rowTitle}>
+                      {m.products?.title || "Prodotto non trovato"}
                     </div>
+                    <div style={rowSub}>Quantità: {m.quantity ?? 0}</div>
                     <div style={rowMeta}>
                       {m.created_at
                         ? new Date(m.created_at).toLocaleDateString("it-IT")
@@ -479,12 +422,7 @@ export default function Dashboard() {
                   </div>
 
                   <div style={listRight}>
-                    <span
-                      style={{
-                        ...statusBadge,
-                        ...movementStyle(m.type),
-                      }}
-                    >
+                    <span style={{ ...badge, ...movementBadge(m.type) }}>
                       {m.type || "-"}
                     </span>
                   </div>
@@ -494,164 +432,14 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-
-      <div style={bottomGrid}>
-        <div style={panel}>
-          <div style={panelHeader}>
-            <div>
-              <h2 style={panelTitle}>Controllo operativo rapido</h2>
-              <p style={panelSubtitle}>
-                Le aree su cui intervenire più spesso durante la giornata.
-              </p>
-            </div>
-          </div>
-
-          <div style={checkList}>
-            <ChecklistItem
-              label="Articoli sotto scorta"
-              value={stats.lowStock}
-              onClick={() => go("/inventory")}
-            />
-            <ChecklistItem
-              label="Articoli esauriti"
-              value={stats.outOfStock}
-              onClick={() => go("/inventory")}
-            />
-            <ChecklistItem
-              label="Schede aperte"
-              value={stats.openOrders}
-              onClick={() => go("/workorders")}
-            />
-            <ChecklistItem
-              label="Schede in lavorazione"
-              value={stats.workingOrders}
-              onClick={() => go("/workorders")}
-            />
-            <ChecklistItem
-              label="Movimenti registrati oggi"
-              value={stats.todayMovements}
-              onClick={() => go("/movements")}
-            />
-          </div>
-        </div>
-
-        <div style={panel}>
-          <div style={panelHeader}>
-            <div>
-              <h2 style={panelTitle}>Flussi veloci</h2>
-              <p style={panelSubtitle}>
-                Accessi immediati alle operazioni ricorrenti.
-              </p>
-            </div>
-          </div>
-
-          <div style={flowGrid}>
-            <FlowButton
-              title="Nuovo cliente"
-              onClick={() => go("/customers")}
-            />
-            <FlowButton
-              title="Nuova bici magazzino"
-              onClick={() => go("/inventory-bikes")}
-            />
-            <FlowButton
-              title="Nuovo movimento"
-              onClick={() => go("/movements")}
-            />
-            <FlowButton
-              title="Controlla sotto scorta"
-              onClick={() => go("/inventory")}
-            />
-            <FlowButton
-              title="Apri ultime schede"
-              onClick={() => go("/workorders")}
-            />
-            <FlowButton
-              title="Gestisci ricambi bici"
-              onClick={() => go("/bike-disassembly")}
-            />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
-function MainStat({
-  title,
-  value,
-  subtitle,
-  onClick,
-}: {
-  title: string;
-  value: number;
-  subtitle: string;
-  onClick: () => void;
-}) {
-  return (
-    <button style={statCard} onClick={onClick}>
-      <div style={statTitle}>{title}</div>
-      <div style={statValue}>{value}</div>
-      <div style={statSubtitle}>{subtitle}</div>
-    </button>
-  );
-}
-
-function QuickAction({
-  title,
-  description,
-  emoji,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  emoji: string;
-  onClick: () => void;
-}) {
-  return (
-    <button style={quickCard} onClick={onClick}>
-      <div style={quickEmoji}>{emoji}</div>
-      <div style={quickTitle}>{title}</div>
-      <div style={quickDescription}>{description}</div>
-    </button>
-  );
-}
-
-function ChecklistItem({
-  label,
-  value,
-  onClick,
-}: {
-  label: string;
-  value: number;
-  onClick: () => void;
-}) {
-  return (
-    <button style={checkItem} onClick={onClick}>
-      <span style={checkLabel}>{label}</span>
-      <span style={checkValue}>{value}</span>
-    </button>
-  );
-}
-
-function FlowButton({
-  title,
-  onClick,
-}: {
-  title: string;
-  onClick: () => void;
-}) {
-  return (
-    <button style={flowBtn} onClick={onClick}>
-      {title}
-    </button>
-  );
-}
-
 const page: React.CSSProperties = {
-  padding: 28,
-  background: "#f8fafc",
-  minHeight: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  gap: 22,
 };
 
 const hero: React.CSSProperties = {
@@ -660,7 +448,6 @@ const hero: React.CSSProperties = {
   alignItems: "flex-start",
   gap: 20,
   flexWrap: "wrap",
-  marginBottom: 24,
 };
 
 const eyebrow: React.CSSProperties = {
@@ -671,8 +458,9 @@ const eyebrow: React.CSSProperties = {
 
 const title: React.CSSProperties = {
   margin: 0,
-  fontSize: 36,
+  fontSize: 34,
   fontWeight: 800,
+  letterSpacing: "-0.03em",
   color: "#0f172a",
 };
 
@@ -689,163 +477,132 @@ const heroActions: React.CSSProperties = {
 };
 
 const primaryBtn: React.CSSProperties = {
-  background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
+  background: "linear-gradient(180deg,#1185ff 0%, #0071e3 100%)",
   color: "#fff",
   border: "none",
-  padding: "12px 18px",
-  borderRadius: 12,
-  cursor: "pointer",
+  padding: "12px 16px",
+  borderRadius: 14,
   fontWeight: 700,
-  boxShadow: "0 12px 24px rgba(37,99,235,0.2)",
+  boxShadow: "0 14px 30px rgba(0,113,227,0.22)",
 };
 
 const secondaryBtn: React.CSSProperties = {
-  background: "#fff",
-  color: "#0f172a",
-  border: "1px solid #dbe2ea",
-  padding: "12px 18px",
-  borderRadius: 12,
-  cursor: "pointer",
+  background: "rgba(255,255,255,0.86)",
+  color: "#111827",
+  border: "1px solid rgba(15,23,42,0.08)",
+  padding: "12px 16px",
+  borderRadius: 14,
   fontWeight: 700,
 };
 
-const statsGrid: React.CSSProperties = {
+const kpiGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: 16,
-  marginBottom: 18,
 };
 
-const statCard: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 20,
+const kpiCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.86)",
+  border: "1px solid rgba(15,23,42,0.06)",
+  borderRadius: 22,
   padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
-  cursor: "pointer",
   textAlign: "left",
+  boxShadow: "0 10px 28px rgba(15,23,42,0.04)",
 };
 
-const statTitle: React.CSSProperties = {
+const kpiLabel: React.CSSProperties = {
   fontSize: 13,
   color: "#64748b",
-  marginBottom: 8,
-};
-
-const statValue: React.CSSProperties = {
-  fontSize: 32,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const statSubtitle: React.CSSProperties = {
-  marginTop: 6,
-  color: "#94a3b8",
-  fontSize: 13,
-};
-
-const urgentGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: 16,
-  marginBottom: 24,
-};
-
-const urgentCard: React.CSSProperties = {
-  borderRadius: 18,
-  padding: 18,
-  cursor: "pointer",
-  textAlign: "left",
-};
-
-const urgentTop: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 12,
   marginBottom: 10,
 };
 
-const urgentTitle: React.CSSProperties = {
+const kpiValue: React.CSSProperties = {
+  fontSize: 34,
   fontWeight: 800,
   color: "#0f172a",
-  fontSize: 15,
+  lineHeight: 1,
 };
 
-const urgentValue: React.CSSProperties = {
-  fontSize: 28,
+const kpiSub: React.CSSProperties = {
+  marginTop: 10,
+  fontSize: 13,
+  color: "#94a3b8",
+};
+
+const alertsGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 14,
+};
+
+const alertCard: React.CSSProperties = {
+  borderRadius: 18,
+  padding: 16,
+  textAlign: "left",
+};
+
+const alertLabel: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  color: "#0f172a",
+};
+
+const alertValue: React.CSSProperties = {
+  marginTop: 10,
+  fontSize: 30,
   fontWeight: 800,
 };
 
-const urgentDescription: React.CSSProperties = {
-  color: "#475569",
-  fontSize: 13,
-};
-
-const quickSection: React.CSSProperties = {
-  marginBottom: 24,
+const quickWrap: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
 };
 
 const sectionTitle: React.CSSProperties = {
   fontSize: 20,
   fontWeight: 800,
   color: "#0f172a",
-  marginBottom: 14,
 };
 
 const quickGrid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 16,
+  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+  gap: 14,
 };
 
 const quickCard: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 20,
+  background: "rgba(255,255,255,0.88)",
+  border: "1px solid rgba(15,23,42,0.06)",
+  borderRadius: 18,
   padding: 18,
   textAlign: "left",
-  cursor: "pointer",
   boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
 };
 
-const quickEmoji: React.CSSProperties = {
-  fontSize: 24,
-  marginBottom: 10,
+const quickIcon: React.CSSProperties = {
+  fontSize: 22,
+  marginBottom: 12,
 };
 
 const quickTitle: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 800,
+  fontSize: 15,
+  fontWeight: 750,
   color: "#0f172a",
-  marginBottom: 6,
-};
-
-const quickDescription: React.CSSProperties = {
-  fontSize: 13,
-  color: "#64748b",
-  lineHeight: 1.45,
 };
 
 const contentGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: 20,
-  marginBottom: 24,
-};
-
-const bottomGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: 20,
+  gap: 18,
 };
 
 const panel: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 22,
+  background: "rgba(255,255,255,0.88)",
+  border: "1px solid rgba(15,23,42,0.06)",
+  borderRadius: 24,
   padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
+  boxShadow: "0 10px 28px rgba(15,23,42,0.04)",
 };
 
 const panelHeader: React.CSSProperties = {
@@ -858,14 +615,15 @@ const panelHeader: React.CSSProperties = {
 
 const panelTitle: React.CSSProperties = {
   margin: 0,
-  fontSize: 20,
+  fontSize: 18,
+  fontWeight: 800,
   color: "#0f172a",
 };
 
 const panelSubtitle: React.CSSProperties = {
   marginTop: 6,
-  color: "#64748b",
   fontSize: 13,
+  color: "#64748b",
 };
 
 const linkBtn: React.CSSProperties = {
@@ -873,15 +631,13 @@ const linkBtn: React.CSSProperties = {
   color: "#1d4ed8",
   border: "1px solid #bfdbfe",
   padding: "8px 12px",
-  borderRadius: 10,
-  cursor: "pointer",
+  borderRadius: 12,
   fontWeight: 700,
 };
 
 const list: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 12,
 };
 
 const listRow: React.CSSProperties = {
@@ -890,7 +646,7 @@ const listRow: React.CSSProperties = {
   alignItems: "center",
   gap: 12,
   padding: "14px 0",
-  borderBottom: "1px solid #eef2f7",
+  borderBottom: "1px solid rgba(15,23,42,0.06)",
 };
 
 const listLeft: React.CSSProperties = {
@@ -917,24 +673,23 @@ const rowMeta: React.CSSProperties = {
 const listRight: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 8,
   alignItems: "flex-end",
+  gap: 8,
 };
 
-const statusBadge: React.CSSProperties = {
-  padding: "5px 10px",
+const badge: React.CSSProperties = {
+  padding: "6px 10px",
   borderRadius: 999,
   fontSize: 12,
   fontWeight: 700,
 };
 
-const smallActionBtn: React.CSSProperties = {
+const smallBtn: React.CSSProperties = {
   background: "#2563eb",
   color: "#fff",
   border: "none",
   padding: "8px 12px",
   borderRadius: 10,
-  cursor: "pointer",
   fontWeight: 700,
 };
 
@@ -945,49 +700,4 @@ const emptyState: React.CSSProperties = {
   padding: 24,
   textAlign: "center",
   color: "#64748b",
-};
-
-const checkList: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const checkItem: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "14px 16px",
-  borderRadius: 14,
-  border: "1px solid #e5e7eb",
-  background: "#fff",
-  cursor: "pointer",
-};
-
-const checkLabel: React.CSSProperties = {
-  color: "#0f172a",
-  fontWeight: 600,
-};
-
-const checkValue: React.CSSProperties = {
-  color: "#2563eb",
-  fontWeight: 800,
-  fontSize: 18,
-};
-
-const flowGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: 10,
-};
-
-const flowBtn: React.CSSProperties = {
-  background: "#f8fafc",
-  border: "1px solid #dbe2ea",
-  padding: "14px 16px",
-  borderRadius: 12,
-  cursor: "pointer",
-  textAlign: "left",
-  fontWeight: 700,
-  color: "#0f172a",
 };
